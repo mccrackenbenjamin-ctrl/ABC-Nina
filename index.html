@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ABC Tracing App</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-100">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const lowercase = "abcdefghijklmnopqrstuvwxyz".split("");
+
+function DrawingCanvas({ letter }){
+const canvasRef = useRef(null);
+const [drawing,setDrawing]=useState(false);
+
+useEffect(()=>{
+resetCanvas();
+},[letter]);
+
+const resetCanvas=()=>{
+const canvas=canvasRef.current;
+const ctx=canvas.getContext("2d");
+ctx.clearRect(0,0,300,300);
+
+ctx.font="180px sans-serif";
+ctx.strokeStyle="#cbd5e1";
+ctx.lineWidth=3;
+ctx.setLineDash([8,6]);
+ctx.textAlign="center";
+ctx.textBaseline="middle";
+ctx.strokeText(letter,150,150);
+ctx.setLineDash([]);
+};
+
+const getPos=(e)=>{
+const rect=canvasRef.current.getBoundingClientRect();
+const x=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
+const y=(e.touches?e.touches[0].clientY:e.clientY)-rect.top;
+return {x,y};
+};
+
+const startDraw=()=> setDrawing(true);
+
+const endDraw=()=>{
+setDrawing(false);
+const ctx=canvasRef.current.getContext("2d");
+ctx.beginPath();
+};
+
+const draw=(e)=>{
+if(!drawing) return;
+const ctx=canvasRef.current.getContext("2d");
+const {x,y}=getPos(e);
+ctx.lineWidth=6;
+ctx.lineCap="round";
+ctx.strokeStyle="black";
+ctx.lineTo(x,y);
+ctx.stroke();
+ctx.beginPath();
+ctx.moveTo(x,y);
+};
+
+return(
+<div className="mt-4">
+<canvas
+ref={canvasRef}
+width={300}
+height={300}
+className="border rounded-2xl bg-white touch-none"
+onMouseDown={startDraw}
+onMouseUp={endDraw}
+onMouseMove={draw}
+onMouseLeave={endDraw}
+onTouchStart={startDraw}
+onTouchEnd={endDraw}
+onTouchMove={draw}
+/>
+
+<button
+onClick={resetCanvas}
+className="mt-2 px-3 py-1 bg-gray-300 rounded-xl"
+>Clear</button>
+</div>
+);
+}
+
+function ABCApp(){
+const [mode,setMode]=useState("upper");
+const [index,setIndex]=useState(0);
+
+const data = mode === "upper" ? uppercase : lowercase;
+const current = data[index];
+
+const speak=()=>{
+speechSynthesis.cancel();
+const utter=new SpeechSynthesisUtterance(current);
+utter.lang="en-US";
+utter.rate=0.6;
+speechSynthesis.speak(utter);
+};
+
+return(
+<div className="p-4 max-w-md mx-auto text-center">
+<h1 className="text-2xl font-bold mb-4">ABC Tracing Practice</h1>
+
+<div className="flex justify-center gap-2 mb-4">
+<button onClick={()=>{setMode("upper");setIndex(0)}} className="px-3 py-2 rounded-2xl bg-black text-white">Uppercase</button>
+<button onClick={()=>{setMode("lower");setIndex(0)}} className="px-3 py-2 rounded-2xl bg-gray-200">Lowercase</button>
+</div>
+
+<div className="text-6xl mb-2">{current}</div>
+
+<button onClick={speak} className="px-4 py-2 bg-purple-500 text-white rounded-2xl mb-3">🔊 Sound</button>
+
+<div className="flex justify-center gap-3 mb-4">
+<button
+onClick={()=>setIndex((index-1+data.length)%data.length)}
+className="px-4 py-2 bg-gray-500 text-white rounded-2xl"
+>Previous</button>
+
+<button
+onClick={()=>setIndex((index+1)%data.length)}
+className="px-4 py-2 bg-green-500 text-white rounded-2xl"
+>Next</button>
+</div>
+
+<DrawingCanvas letter={current}/>
+</div>
+);
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<ABCApp />);
+</script>
+</body>
+</html>
